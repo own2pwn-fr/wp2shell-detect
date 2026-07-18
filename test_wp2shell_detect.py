@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Offline unit tests for the version/verdict logic (no network)."""
 import unittest
+from unittest import mock
 
 from wp2shell_detect import (
     RCE_RANGES,
     SQLI_RANGES,
+    Resp,
+    assess,
     in_ranges,
     parse_version,
 )
@@ -49,6 +52,24 @@ class Verdict(unittest.TestCase):
         for v in ("6.7.0", "5.9.0"):
             self.assertFalse(self.rce(v), v)
             self.assertFalse(self.sqli(v), v)
+
+
+class Fingerprinting(unittest.TestCase):
+    def test_csp_wordpress_domain_is_not_a_wordpress_site(self):
+        # Regression: a non-WP front (Next.js) whose CSP references a
+        # wordpress.* media domain must NOT be flagged as WordPress.
+        def fake(url, method="GET", insecure=False):
+            if any(s in url for s in ("/wp-json", "/feed", "readme")):
+                return Resp(404, "not found", {})
+            return Resp(
+                200,
+                "<html><body>a Next.js site</body></html>",
+                {"content-security-policy": "img-src https://wordpress.example.io"},
+            )
+
+        with mock.patch("wp2shell_detect._request", side_effect=fake):
+            r = assess("https://front.example.io", insecure=False)
+        self.assertEqual(r.verdict, "not-wordpress")
 
 
 if __name__ == "__main__":

@@ -211,9 +211,19 @@ def assess(target: str, insecure: bool) -> Result:
         res.detail = "host did not respond"
         return res
 
-    blob = (home.body[:4096] + " " + " ".join(home.headers.values())).lower()
+    # Body + Link header only. Scanning ALL headers for "wordpress" caused false
+    # positives: a CSP that references a wordpress.* media domain (headless setups)
+    # made a non-WordPress front look like WordPress.
+    link = home.headers.get("Link") or home.headers.get("link") or ""
+    blob = (home.body[:8192] + " " + link).lower()
     res.is_wordpress = ("wp-content" in blob or "wp-includes" in blob
-                        or "wordpress" in blob or bool(_request(base + "/wp-json/", insecure=insecure)))
+                        or "wp-json" in blob or "wordpress" in blob)
+    if not res.is_wordpress:
+        # Fallback: a genuine WP REST index (200 + namespaces), not just any
+        # response — a 404 page must not count as "WordPress".
+        api = _request(base + "/wp-json/", insecure=insecure)
+        if api and api.status == 200 and ('"namespaces"' in api.body or '"wp/v2"' in api.body):
+            res.is_wordpress = True
     if not res.is_wordpress:
         res.verdict = "not-wordpress"
         res.detail = "no WordPress fingerprint on the homepage"
