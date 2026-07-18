@@ -20,17 +20,29 @@ Full technical writeup:
 It **detects exposure**. It **does not exploit** anything. Every request it makes
 is a normal, read-only request a crawler could send:
 
-1. **Fingerprints the WordPress core version** from public sources: the
-   `generator` meta tag, the RSS feed generator (`?v=`), `readme.html`, and the
-   `/wp-json/` index.
+1. **Fingerprints the WordPress core version** from many public sources, so a
+   hardened install that strips the `generator` tag is still identified: the
+   `generator` meta tag, **core asset `?ver=`** (on `/wp-includes/` and
+   `/wp-admin/` assets, which track core), the RSS feed generator (`?v=`),
+   `/wp-links-opml.php`, the login page assets, `/wp-includes/version.php`,
+   `readme.html`, and the `/wp-json/` index. Sources are cross-checked and a
+   **confidence** (`high` when ≥2 agree) is reported.
 2. **Compares** the version to the known-vulnerable ranges.
-3. **Checks the REST batch route** with a benign `OPTIONS` request — which
-   returns the route schema *without ever invoking the handler* — to tell whether
-   an edge mitigation is in place.
+3. **Checks the REST batch route** with a benign `OPTIONS` request (and the REST
+   index) — which returns the route schema *without ever invoking the handler* —
+   to tell whether an edge mitigation is in place.
+4. **Discovers headless WordPress back-ends.** If the target front isn't WP but
+   references a WordPress host on the same domain (via CSP, the `Link` header or
+   asset URLs — common with headless/Next.js fronts), the tool reports it, and
+   `--discover` scans it too.
 
 No request triggers the vulnerability. No `POST /wp-json/batch/v1`, no
 `author_exclude`, no SQL. If the core version is hidden, the tool says so rather
 than guessing (confirming wp2shell blindly would require exploiting it).
+
+**Resilience:** retries with backoff, gzip/deflate decoding, `https→http`
+fallback, cross-host redirect following, a browser-like User-Agent (overridable),
+and parallel multi-target scanning.
 
 ## Vulnerable ranges
 
@@ -47,10 +59,21 @@ Zero dependencies. Python 3.8+.
 ```bash
 ./wp2shell_detect.py https://example.com
 ./wp2shell_detect.py --json https://a.example https://b.example
-./wp2shell_detect.py --targets hosts.txt        # one host per line
+./wp2shell_detect.py --targets hosts.txt --workers 16   # parallel sweep
+./wp2shell_detect.py --discover https://front.example   # follow headless WP
 ```
 
-Exit code `2` if any target is found vulnerable (handy in CI / cron sweeps).
+Options: `--json`, `--discover`, `--workers N`, `--timeout S`, `--user-agent UA`,
+`--insecure`, `--targets FILE`. Exit code `2` if any target is found vulnerable
+(handy in CI / cron sweeps).
+
+### Headless WordPress
+
+Modern sites often serve a JS/Next.js front on `www.` and keep WordPress on a
+sibling host (`wordpress.`, `wp.`, `cms.`). Scanning `www.` then returns
+`not WordPress` — correctly, because that host isn't WordPress. Point the scan at
+the WordPress host, or pass `--discover` to have the tool find and scan it from
+the front's CSP / `Link` header / asset URLs automatically.
 
 Example:
 
