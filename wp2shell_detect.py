@@ -54,8 +54,10 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit, urlunsplit
 import urllib.request
 
+__version__ = "1.0.0"
+
 # Tunables (overridable via CLI / module state).
-USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) wp2shell-detect/1.1 (+https://own2pwn.fr)"
+USER_AGENT = f"Mozilla/5.0 (X11; Linux x86_64) wp2shell-detect/{__version__} (+https://own2pwn.fr)"
 TIMEOUT = 12
 RETRIES = 2
 MAX_BODY = 512_000  # cap read per response
