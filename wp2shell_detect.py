@@ -54,7 +54,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit, urlunsplit
 import urllib.request
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 # Tunables (overridable via CLI / module state).
 USER_AGENT = f"Mozilla/5.0 (X11; Linux x86_64) wp2shell-detect/{__version__} (+https://own2pwn.fr)"

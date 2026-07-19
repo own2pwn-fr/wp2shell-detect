@@ -52,16 +52,32 @@ and parallel multi-target scanning.
 | 6.9.0 – 6.9.4 | **pre-auth RCE** | 6.9.5 |
 | 7.0.0 – 7.0.1 | **pre-auth RCE** | 7.0.2 |
 
+## Install
+
+```bash
+pip install wp2shell-detect
+```
+
+Or run it straight from source (single file, no dependencies, Python 3.8+):
+
+```bash
+git clone https://github.com/own2pwn-fr/wp2shell-detect
+./wp2shell-detect/wp2shell_detect.py https://example.com
+```
+
 ## Usage
 
 Zero dependencies. Python 3.8+.
 
 ```bash
-./wp2shell_detect.py https://example.com
-./wp2shell_detect.py --json https://a.example https://b.example
-./wp2shell_detect.py --targets hosts.txt --workers 16   # parallel sweep
-./wp2shell_detect.py --discover https://front.example   # follow headless WP
+wp2shell-detect https://example.com
+wp2shell-detect --json https://a.example https://b.example
+wp2shell-detect --targets hosts.txt --workers 16   # parallel sweep
+wp2shell-detect --discover https://front.example   # follow headless WP
 ```
+
+(Installed from PyPI, the command is `wp2shell-detect`. From a clone, call
+`./wp2shell_detect.py` with the same arguments.)
 
 Options: `--json`, `--discover`, `--workers N`, `--timeout S`, `--user-agent UA`,
 `--insecure`, `--targets FILE`. Exit code `2` if any target is found vulnerable
@@ -100,4 +116,4 @@ how you use it.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). By own2pwn.
+MIT. See [LICENSE](https://github.com/own2pwn-fr/wp2shell-detect/blob/main/LICENSE). By own2pwn.
